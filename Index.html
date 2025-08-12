@@ -1,133 +1,72 @@
-<!doctype html>
+ <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>إدارة مزرعة - لوحة التحكم</title>
-  <meta name="description" content="نظام بسيط لإدارة مزرعة دواجن - ربط Supabase" />
-  <link rel="manifest" href="manifest.json" />
-  <style>
-    :root{--bg:#f6fbfb;--card:#fff;--accent:#0b6f88;--muted:#516176}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; margin:0;background:var(--bg);color:#07323f}
-    header{background:linear-gradient(90deg,var(--accent),#2aa0c7);color:#fff;padding:14px;text-align:center}
-    .container{max-width:980px;margin:14px auto;padding:12px}
-    .card{background:var(--card);padding:12px;border-radius:10px;box-shadow:0 6px 18px rgba(10,20,40,0.06);margin-bottom:12px}
-    h1{margin:0;font-size:18px}
-    label{display:block;margin-top:8px;font-weight:600}
-    input,select,textarea{width:100%;padding:8px;border:1px solid #e0ebf0;border-radius:8px}
-    .row{display:flex;gap:10px}
-    .row .col{flex:1}
-    button{background:var(--accent);color:#fff;padding:8px 10px;border-radius:8px;border:0;cursor:pointer}
-    .muted{color:var(--muted);font-size:13px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px;border-bottom:1px solid #eef6f8;text-align:right}
-    th{background:#f2fbfc}
-    .actions button{margin-left:6px;background:#e04b4b}
-    @media(max-width:700px){.row{flex-direction:column}}
-    .kpi{display:flex;gap:10px}
-    .kpi .box{flex:1;background:#f7ffff;padding:10px;border-radius:8px;text-align:center}
-    .chart-wrap{height:200px}
-    .small{font-size:13px;color:var(--muted)}
-  </style>
-  <!-- Supabase JS (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <!-- Chart.js for simple charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة مزرعة الدواجن</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+        h1 { color: #333; }
+        .section { background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        label { display: block; margin-top: 10px; }
+        input, textarea, button { width: 100%; padding: 8px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; }
+        button { background: #28a745; color: #fff; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #007bff; color: white; }
+    </style>
 </head>
 <body>
-<header>
-  <div style="max-width:980px;margin:0 auto">
-    <h1>نظام إدارة مزرعة الدواجن</h1>
-    <div class="small">عنبر واحد – سعة 5000 طير</div>
-  </div>
-</header>
 
-<main class="container">
-  <section class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <strong id="user_info">مرحباً — مستخدم</strong>
-        <div class="small" id="server_state">الاتصال: جارٍ التحقق...</div>
-      </div>
-      <div>
-        <button id="sync_now">مزامنة الآن</button>
-      </div>
+    <h1>📊 برنامج إدارة مزرعة الدواجن</h1>
+
+    <!-- إضافة بيانات يومية -->
+    <div class="section">
+        <h2>إضافة تقرير يومي</h2>
+        <label>عدد الطيور</label>
+        <input type="number" id="birdsCount">
+        
+        <label>كمية العلف (كغ)</label>
+        <input type="number" id="feedAmount">
+        
+        <label>ملاحظات</label>
+        <textarea id="notes"></textarea>
+        
+        <button onclick="addDailyReport()">إضافة التقرير</button>
     </div>
-  </section>
 
-  <section class="card">
-    <h3>أضف سجل جديد</h3>
-    <form id="recordForm">
-      <div class="row">
-        <div class="col">
-          <label>التاريخ</label>
-          <input type="date" id="fld_date" required />
-        </div>
-        <div class="col">
-          <label>التبيان (نوع العملية)</label>
-          <input id="fld_tabyan" placeholder="مثلاً: إضافة كتاكيت / نفوق / بيع" />
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col">
-          <label>العدد</label>
-          <input id="fld_number" type="number" step="1" value="0" />
-        </div>
-        <div class="col">
-          <label>أفرادي (العدد الحالي بعد العملية)</label>
-          <input id="fld_afradi" type="number" step="1" value="0" />
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col">
-          <label>الإجمالي</label>
-          <input id="fld_ejmali" type="number" step="1" value="0" />
-        </div>
-        <div class="col">
-          <label>ملاحظات</label>
-          <input id="fld_notes" />
-        </div>
-      </div>
-
-      <div style="margin-top:10px;display:flex;gap:8px">
-        <button type="submit">حفظ السجل</button>
-        <button type="button" id="btn_clear">إفراغ الحقول</button>
-        <button type="button" id="btn_export">تصدير CSV</button>
-      </div>
-    </form>
-  </section>
-
-  <section class="card">
-    <h3>مؤشرات سريعة</h3>
-    <div class="kpi">
-      <div class="box"><div class="small">الطيور الحالية</div><div id="k_current" style="font-size:20px;font-weight:700">0</div></div>
-      <div class="box"><div class="small">مجموع العمليات</div><div id="k_count" style="font-size:20px;font-weight:700">0</div></div>
-      <div class="box"><div class="small">آخر مزامنة</div><div id="k_sync" style="font-size:14px">—</div></div>
+    <!-- عرض البيانات -->
+    <div class="section">
+        <h2>📅 التقارير اليومية</h2>
+        <table id="reportsTable">
+            <tr>
+                <th>التاريخ</th>
+                <th>عدد الطيور</th>
+                <th>كمية العلف</th>
+                <th>ملاحظات</th>
+            </tr>
+        </table>
     </div>
-    <div style="margin-top:12px" class="chart-wrap">
-      <canvas id="chartLine"></canvas>
-    </div>
-  </section>
 
-  <section class="card">
-    <h3>سجل العمليات</h3>
-    <div class="small">ابحث أو صفِّ حسب التاريخ أو التبيان</div>
-    <div style="margin-top:8px;overflow:auto;max-height:300px">
-      <table id="tbl_records">
-        <thead><tr><th>تاريخ</th><th>التبيان</th><th>العدد</th><th>أفرادي</th><th>إجمالي</th><th>ملاحظات</th><th>إجراءات</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
+    <script>
+        function addDailyReport() {
+            const table = document.getElementById("reportsTable");
+            const date = new Date().toLocaleDateString();
+            const birds = document.getElementById("birdsCount").value;
+            const feed = document.getElementById("feedAmount").value;
+            const notes = document.getElementById("notes").value;
+            
+            const row = table.insertRow();
+            row.insertCell(0).innerText = date;
+            row.insertCell(1).innerText = birds;
+            row.insertCell(2).innerText = feed;
+            row.insertCell(3).innerText = notes;
 
-  <section class="card small">
-    <div class="muted">الملاحظات: البيانات تحفظ محليًا إذا لم يكن هناك اتصال، ثم تُزامن تلقائيًا عند توفر الإنترنت. تأكد من صلاحيات Supabase المناسبة.</div>
-  </section>
-</main>
+            document.getElementById("birdsCount").value = '';
+            document.getElementById("feedAmount").value = '';
+            document.getElementById("notes").value = '';
+        }
+    </script>
 
-<script>
-/* ========== إعدادات الربط - ضع القيم الخاصة بك هنا ========== */
-const SUPABASE_URL = 'https://yktmsrahgvepxjygavwe.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ
+</body>
+</html>
