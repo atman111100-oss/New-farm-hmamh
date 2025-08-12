@@ -1,4 +1,4 @@
-<!-- أضف هذا في index.html -->
+<!-- نفس الفورم السابق -->
 <form id="addProductForm">
   <input type="text" id="productName" placeholder="اسم المنتج" required />
   <input type="number" id="productPrice" placeholder="السعر" required />
@@ -26,8 +26,28 @@ async function getProducts() {
     const listDiv = document.getElementById('productsList')
     listDiv.innerHTML = ''
     data.forEach(p => {
-      listDiv.innerHTML += `<p>${p.name} - ${p.price} ريال</p>`
+      listDiv.innerHTML += `
+        <p>
+          ${p.name} - ${p.price} ريال
+          <button onclick="deleteProduct(${p.id})">❌ حذف</button>
+        </p>
+      `
     })
+  }
+}
+
+// حذف المنتج
+window.deleteProduct = async function (id) {
+  const { error } = await supabase
+    .from('منتجات')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('خطأ في الحذف:', error)
+  } else {
+    alert('تم حذف المنتج بنجاح!')
+    getProducts()
   }
 }
 
