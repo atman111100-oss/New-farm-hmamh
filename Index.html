@@ -1,12 +1,53 @@
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Farm Hmamh</title>
-</head>
-<body>
-    <h1>مرحباً بك في مشروع المزرعة</h1>
-    <p>هذا أول ملف HTML في المشروع.</p>
-</body>
-</html>
+<!-- أضف هذا في index.html -->
+<form id="addProductForm">
+  <input type="text" id="productName" placeholder="اسم المنتج" required />
+  <input type="number" id="productPrice" placeholder="السعر" required />
+  <button type="submit">إضافة المنتج</button>
+</form>
+
+<div id="productsList"></div>
+
+<script type="module">
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = 'https://yktmsrahgvepxjygavwe.supabase.co'
+const supabaseKey = 'ضع_المفتاح_هنا'
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+// جلب المنتجات
+async function getProducts() {
+  const { data, error } = await supabase
+    .from('منتجات')
+    .select('*')
+
+  if (error) {
+    console.error('حدث خطأ:', error)
+  } else {
+    const listDiv = document.getElementById('productsList')
+    listDiv.innerHTML = ''
+    data.forEach(p => {
+      listDiv.innerHTML += `<p>${p.name} - ${p.price} ريال</p>`
+    })
+  }
+}
+
+// إضافة منتج
+document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+  e.preventDefault()
+  const name = document.getElementById('productName').value
+  const price = parseFloat(document.getElementById('productPrice').value)
+
+  const { error } = await supabase
+    .from('منتجات')
+    .insert([{ name, price }])
+
+  if (error) {
+    console.error('خطأ في الإضافة:', error)
+  } else {
+    alert('تمت إضافة المنتج بنجاح!')
+    getProducts()
+  }
+})
+
+getProducts()
+</script>
