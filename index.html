@@ -1,72 +1,367 @@
- <!DOCTYPE html>
+<!doctype html>
+
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة مزرعة الدواجن</title>
-    <style>
-        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
-        h1 { color: #333; }
-        .section { background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-        label { display: block; margin-top: 10px; }
-        input, textarea, button { width: 100%; padding: 8px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc; }
-        button { background: #28a745; color: #fff; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        th { background-color: #007bff; color: white; }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>برنامج إدارة مزرعة الدواجن</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Supabase (اختياري – يُستخدم تلقائياً إذا وضعت المفاتيح) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <style>
+    /* تصغير الخطوط قليلاً على الشاشات الصغيرة */
+    @media (max-width: 420px){ html{ font-size:15px; } }
+  </style>
 </head>
-<body>
-
-    <h1>📊 برنامج إدارة مزرعة الدواجن</h1>
-
-    <!-- إضافة بيانات يومية -->
-    <div class="section">
-        <h2>إضافة تقرير يومي</h2>
-        <label>عدد الطيور</label>
-        <input type="number" id="birdsCount">
-        
-        <label>كمية العلف (كغ)</label>
-        <input type="number" id="feedAmount">
-        
-        <label>ملاحظات</label>
-        <textarea id="notes"></textarea>
-        
-        <button onclick="addDailyReport()">إضافة التقرير</button>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
+  <div class="max-w-5xl mx-auto p-4 sm:p-6">
+    <!-- الشريط العلوي -->
+    <header class="flex items-center justify-between gap-4 mb-6">
+      <div class="flex items-center gap-3">
+        <span class="ti ti-chart-bar text-2xl"></span>
+        <h1 class="text-2xl sm:text-3xl font-extrabold">برنامج إدارة مزرعة الدواجن</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="darkToggle" class="px-3 py-2 rounded-xl bg-gray-200 dark:bg-gray-800 hover:opacity-90">
+          <span class="ti ti-moon-stars" id="darkIcon"></span>
+        </button>
+      </div>
+    </header><!-- إعدادات الاتصال (اختياري) -->
+<section class="mb-4">
+  <details class="rounded-2xl overflow-hidden group">
+    <summary class="cursor-pointer bg-white/70 dark:bg-gray-800 px-4 py-3 font-semibold flex items-center justify-between">
+      <span class="flex items-center gap-2"><i class="ti ti-plug"></i> الاتصال بـ Supabase (اختياري)</span>
+      <span class="text-sm text-gray-500">اتركه فارغاً للاستخدام بدون إنترنت</span>
+    </summary>
+    <div class="bg-white dark:bg-gray-800 p-4 border-t dark:border-gray-700 grid sm:grid-cols-2 gap-3">
+      <label class="block">
+        <span class="text-sm">SUPABASE_URL</span>
+        <input id="sbUrl" class="mt-1 w-full rounded-xl border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2" placeholder="مثال: https://xxxx.supabase.co"/>
+      </label>
+      <label class="block">
+        <span class="text-sm">SUPABASE_ANON_KEY</span>
+        <input id="sbKey" class="mt-1 w-full rounded-xl border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2" placeholder="ضع المفتاح العام هنا"/>
+      </label>
+      <div class="sm:col-span-2 flex items-center gap-2">
+        <button id="saveSb" class="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">حفظ الاتصال</button>
+        <span id="sbState" class="text-sm text-gray-500"></span>
+      </div>
     </div>
+  </details>
+</section>
 
-    <!-- عرض البيانات -->
-    <div class="section">
-        <h2>📅 التقارير اليومية</h2>
-        <table id="reportsTable">
-            <tr>
-                <th>التاريخ</th>
-                <th>عدد الطيور</th>
-                <th>كمية العلف</th>
-                <th>ملاحظات</th>
-            </tr>
-        </table>
+<!-- النموذج -->
+<section class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-6 mb-6">
+  <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="ti ti-square-plus"></i> إضافة تقرير يومي</h2>
+  <form id="reportForm" class="grid sm:grid-cols-2 gap-3">
+    <label class="block">
+      <span class="text-sm">التاريخ</span>
+      <input id="date" type="date" class="mt-1 w-full rounded-xl border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2" />
+    </label>
+    <label class="block">
+      <span class="text-sm">عدد الطيور</span>
+      <input id="birds" type="number" min="0" inputmode="numeric" class="mt-1 w-full rounded-xl border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2" placeholder="مثال: 1200" />
+    </label>
+    <label class="block">
+      <span class="text-sm">كمية العلف (كغ)</span>
+      <input id="feed" type="number" step="0.01" min="0" inputmode="decimal" class="mt-1 w-full rounded-xl border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2" placeholder="مثال: 250" />
+    </label>
+    <label class="block sm:col-span-2">
+      <span class="text-sm">ملاحظات</span>
+      <textarea id="notes" rows="2" class="mt-1 w-full rounded-xl border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2" placeholder="اختياري"></textarea>
+    </label>
+    <div class="sm:col-span-2 flex gap-2">
+      <button class="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700" type="submit" id="submitBtn">إضافة التقرير</button>
+      <button class="px-4 py-2 rounded-xl bg-gray-200 dark:bg-gray-700" type="button" id="resetBtn">تفريغ الحقول</button>
     </div>
+  </form>
+</section>
 
-    <script>
-        function addDailyReport() {
-            const table = document.getElementById("reportsTable");
-            const date = new Date().toLocaleDateString();
-            const birds = document.getElementById("birdsCount").value;
-            const feed = document.getElementById("feedAmount").value;
-            const notes = document.getElementById("notes").value;
-            
-            const row = table.insertRow();
-            row.insertCell(0).innerText = date;
-            row.insertCell(1).innerText = birds;
-            row.insertCell(2).innerText = feed;
-            row.insertCell(3).innerText = notes;
+<!-- أدوات -->
+<section class="flex flex-col sm:flex-row gap-3 mb-4">
+  <div class="flex-1 bg-white dark:bg-gray-800 rounded-2xl p-3">
+    <label class="block text-sm mb-1">بحث</label>
+    <input id="search" placeholder="ابحث في التاريخ/الملاحظات" class="w-full rounded-xl border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2"/>
+  </div>
+  <div class="flex items-end gap-2">
+    <button id="exportCsv" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700"><i class="ti ti-table-export"></i> تصدير CSV</button>
+    <button id="clearAll" class="px-4 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700"><i class="ti ti-trash"></i> مسح الكل (محلي)</button>
+  </div>
+</section>
 
-            document.getElementById("birdsCount").value = '';
-            document.getElementById("feedAmount").value = '';
-            document.getElementById("notes").value = '';
+<!-- الجدول -->
+<section class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100">
+        <tr>
+          <th class="py-3 px-3 text-right">التاريخ</th>
+          <th class="py-3 px-3 text-right">عدد الطيور</th>
+          <th class="py-3 px-3 text-right">كمية العلف</th>
+          <th class="py-3 px-3 text-right">/طائر (كغ)</th>
+          <th class="py-3 px-3 text-right">ملاحظات</th>
+          <th class="py-3 px-3 text-right">إجراءات</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <div class="p-3 text-xs text-gray-500">يتم الحفظ محليًا تلقائيًا، وعند تفعيل Supabase يتم المزامنة مع السحابة.</div>
+</section>
+
+<!-- الرسوم -->
+<section class="grid md:grid-cols-2 gap-4 mt-6">
+  <div class="bg-white dark:bg-gray-800 rounded-2xl p-4">
+    <h3 class="font-bold mb-2">العلف المستهلك يوميًا</h3>
+    <canvas id="feedChart" height="140"></canvas>
+  </div>
+  <div class="bg-white dark:bg-gray-800 rounded-2xl p-4">
+    <h3 class="font-bold mb-2">عدد الطيور</h3>
+    <canvas id="birdsChart" height="140"></canvas>
+  </div>
+</section>
+
+  </div>  <script>
+    // ===================== الثيم =====================
+    const darkToggle = document.getElementById('darkToggle');
+    const darkIcon = document.getElementById('darkIcon');
+    function applyTheme(){
+      const enabled = localStorage.getItem('farm.dark') === '1';
+      document.documentElement.classList.toggle('dark', enabled);
+      darkIcon.className = enabled ? 'ti ti-sun' : 'ti ti-moon-stars';
+    }
+    darkToggle.onclick = ()=>{
+      const cur = localStorage.getItem('farm.dark') === '1';
+      localStorage.setItem('farm.dark', cur ? '0' : '1');
+      applyTheme();
+    }
+    applyTheme();
+
+    // ===================== إعدادات Supabase (اختياري) =====================
+    const sbUrlEl = document.getElementById('sbUrl');
+    const sbKeyEl = document.getElementById('sbKey');
+    const sbState = document.getElementById('sbState');
+    const saveSbBtn = document.getElementById('saveSb');
+
+    const CFG = {
+      url: localStorage.getItem('farm.sb.url') || '',
+      key: localStorage.getItem('farm.sb.key') || ''
+    };
+    sbUrlEl.value = CFG.url; sbKeyEl.value = CFG.key;
+
+    let sbClient = null; let remoteEnabled = false;
+    function setupSupabase(){
+      remoteEnabled = !!(CFG.url && CFG.key);
+      if(remoteEnabled){
+        sbClient = supabase.createClient(CFG.url, CFG.key);
+        sbState.textContent = 'سيتم استخدام السحابة عند الإضافة/التحميل.';
+      } else {
+        sbClient = null;
+        sbState.textContent = 'سيتم استخدام التخزين المحلي فقط.';
+      }
+    }
+    saveSbBtn.onclick = ()=>{
+      CFG.url = sbUrlEl.value.trim();
+      CFG.key = sbKeyEl.value.trim();
+      localStorage.setItem('farm.sb.url', CFG.url);
+      localStorage.setItem('farm.sb.key', CFG.key);
+      setupSupabase();
+      refresh();
+    };
+    setupSupabase();
+
+    // ===================== طبقة البيانات =====================
+    const LSK = 'farm.reports.v1';
+
+    async function loadReports(){
+      if(remoteEnabled){
+        const { data, error } = await sbClient
+          .from('daily_reports')
+          .select('*')
+          .order('date', { ascending: true });
+        if(!error && data){ return data.map(normalize); }
+      }
+      const raw = JSON.parse(localStorage.getItem(LSK) || '[]');
+      return raw.map(normalize);
+    }
+
+    async function saveReport(item){
+      // item: {id?, date, birds, feed, notes}
+      if(remoteEnabled){
+        if(item.id){
+          await sbClient.from('daily_reports').update(item).eq('id', item.id);
+        } else {
+          const { data, error } = await sbClient.from('daily_reports').insert(item).select();
+          if(!error && data && data[0]) item.id = data[0].id;
         }
-    </script>
+      }
+      const all = JSON.parse(localStorage.getItem(LSK) || '[]');
+      if(item.id){
+        const idx = all.findIndex(r=>r.id===item.id);
+        if(idx>-1) all[idx]=item; else all.push(item);
+      } else {
+        item.id = crypto.randomUUID();
+        all.push(item);
+      }
+      localStorage.setItem(LSK, JSON.stringify(all));
+      return item.id;
+    }
 
-</body>
+    async function removeReport(id){
+      if(remoteEnabled){ await sbClient.from('daily_reports').delete().eq('id', id); }
+      const all = JSON.parse(localStorage.getItem(LSK) || '[]').filter(r=>r.id!==id);
+      localStorage.setItem(LSK, JSON.stringify(all));
+    }
+
+    function normalize(r){
+      return {
+        id: r.id || crypto.randomUUID(),
+        date: r.date || r.created_at?.slice(0,10) || new Date().toISOString().slice(0,10),
+        birds: Number(r.birds||0),
+        feed: Number(r.feed||0),
+        notes: r.notes || ''
+      };
+    }
+
+    // ===================== الواجهة =====================
+    const form = document.getElementById('reportForm');
+    const dateEl = document.getElementById('date');
+    const birdsEl = document.getElementById('birds');
+    const feedEl = document.getElementById('feed');
+    const notesEl = document.getElementById('notes');
+    const rowsEl = document.getElementById('rows');
+    const resetBtn = document.getElementById('resetBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const searchEl = document.getElementById('search');
+
+    let editingId = null; // عند التعديل
+
+    function today(){ return new Date().toISOString().slice(0,10); }
+    dateEl.value = today();
+
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const item = {
+        id: editingId || undefined,
+        date: dateEl.value || today(),
+        birds: Number(birdsEl.value||0),
+        feed: Number(feedEl.value||0),
+        notes: String(notesEl.value||'').trim()
+      };
+      await saveReport(item);
+      clearForm();
+      refresh();
+    });
+
+    resetBtn.onclick = clearForm;
+    function clearForm(){
+      editingId = null;
+      dateEl.value = today(); birdsEl.value=''; feedEl.value=''; notesEl.value='';
+      submitBtn.textContent = 'إضافة التقرير';
+    }
+
+    function renderRows(list){
+      const q = searchEl.value?.trim()?.toLowerCase()||'';
+      const filtered = list.filter(r=>
+        r.date.includes(q) || r.notes.toLowerCase().includes(q)
+      );
+      rowsEl.innerHTML = filtered.map(r=>{
+        const per = r.birds>0 ? (r.feed/r.birds).toFixed(3) : '-';
+        return `<tr class="border-b border-gray-100 dark:border-gray-700">
+          <td class="py-2 px-3 whitespace-nowrap">${r.date}</td>
+          <td class="py-2 px-3">${r.birds.toLocaleString('ar')}</td>
+          <td class="py-2 px-3">${r.feed}</td>
+          <td class="py-2 px-3">${per}</td>
+          <td class="py-2 px-3">${escapeHtml(r.notes)}</td>
+          <td class="py-2 px-3">
+            <button class="text-blue-600 hover:underline" onclick="editRow('${r.id}')">تعديل</button>
+            <span class="mx-1">•</span>
+            <button class="text-rose-600 hover:underline" onclick="deleteRow('${r.id}')">حذف</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    window.editRow = async function(id){
+      const list = await loadReports();
+      const r = list.find(x=>x.id===id);
+      if(!r) return;
+      editingId = r.id;
+      dateEl.value = r.date; birdsEl.value = r.birds; feedEl.value = r.feed; notesEl.value = r.notes;
+      submitBtn.textContent = 'حفظ التعديلات';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.deleteRow = async function(id){
+      if(!confirm('هل تريد حذف هذا السجل؟')) return;
+      await removeReport(id);
+      refresh();
+    }
+
+    searchEl.addEventListener('input', refresh);
+
+    // ===================== التصدير =====================
+    document.getElementById('exportCsv').onclick = async ()=>{
+      const list = await loadReports();
+      const header = ['date','birds','feed','notes'];
+      const lines = [header.join(',')].concat(
+        list.map(r=>[r.date,r.birds,r.feed,`"${(r.notes||'').replaceAll('"','''')}"`].join(','))
+      );
+      const blob = new Blob(["\ufeff" + lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'farm_reports.csv'; a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    // مسح محلي فقط
+    document.getElementById('clearAll').onclick = ()=>{
+      if(confirm('سيتم مسح النسخة المحلية فقط. متابعة؟')){
+        localStorage.removeItem(LSK);
+        refresh();
+      }
+    }
+
+    // ===================== الرسوم البيانية =====================
+    let feedChart, birdsChart;
+    function updateCharts(list){
+      const labels = list.map(r=>r.date);
+      const feedData = list.map(r=>r.feed);
+      const birdsData = list.map(r=>r.birds);
+
+      if(feedChart){ feedChart.destroy(); }
+      if(birdsChart){ birdsChart.destroy(); }
+
+      const opt = {
+        responsive: true,
+        scales: { y: { beginAtZero: true } },
+        plugins: { legend: { display: false } }
+      };
+      feedChart = new Chart(document.getElementById('feedChart'), {
+        type: 'bar', data: { labels, datasets: [{ data: feedData }] }, options: opt
+      });
+      birdsChart = new Chart(document.getElementById('birdsChart'), {
+        type: 'line', data: { labels, datasets: [{ data: birdsData }] }, options: opt
+      });
+    }
+
+    // ===================== المزامنة والعرض =====================
+    async function refresh(){
+      const list = (await loadReports()).sort((a,b)=>a.date.localeCompare(b.date));
+      renderRows(list);
+      updateCharts(list);
+    }
+
+    function escapeHtml(s){
+      return (s||'').replace(/[&<>\"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    // أول تحميل
+    refresh();
+  </script></body>
 </html>
