@@ -1,367 +1,445 @@
-<!doctype html>
-
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>برنامج إدارة مزرعة الدواجن</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Icons -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <!-- Supabase (اختياري – يُستخدم تلقائياً إذا وضعت المفاتيح) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-  <style>
-    /* تصغير الخطوط قليلاً على الشاشات الصغيرة */
-    @media (max-width: 420px){ html{ font-size:15px; } }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>برنامج إدارة مزرعة الدواجن</title>
+<style>
+  :root{
+    --green:#2e7d32; --green-2:#388e3c; --bg:#f6f7f9; --card:#fff; --text:#1f2937; --muted:#6b7280;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Tahoma,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  header{background:var(--green);color:#fff;padding:14px}
+  header .wrap{max-width:1000px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  header h1{font-size:1.15rem;margin:0}
+  header small{color:#e5f4e7}
+  nav{background:var(--green-2);display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:8px}
+  nav a{color:#fff;text-decoration:none;padding:8px 12px;border-radius:10px}
+  nav a.active, nav a:hover{background:#1b5e20}
+  main{max-width:1000px;margin:18px auto;padding:0 12px}
+  .card{background:var(--card);border-radius:14px;box-shadow:0 8px 18px rgba(16,24,40,.04);padding:16px;margin-bottom:16px}
+  .card h2{margin:0 0 10px 0;color:var(--green);font-size:1.1rem}
+  form.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  @media(max-width:800px){form.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:460px){form.grid{grid-template-columns:1fr}}
+  input,select,button,textarea{
+    width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-family:inherit
+  }
+  textarea{resize:vertical}
+  button.primary{background:var(--green);color:#fff;border:none}
+  button.secondary{background:#eef2ff;color:#1e293b;border:1px solid #dbeafe}
+  button.danger{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+  table{width:100%;border-collapse:collapse;margin-top:10px}
+  th,td{border-bottom:1px solid #f1f5f9;padding:10px;text-align:center;font-size:.95rem}
+  th{background:#f9fafb;color:#111827}
+  .muted{color:var(--muted);font-size:.9rem}
+  .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#f1f5f9}
+  .row-actions{display:flex;gap:6px;justify-content:center}
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  @media(max-width:800px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:#fff;border-radius:14px;padding:14px;text-align:center;border:1px solid #f1f5f9}
+  .stat b{display:block;font-size:1.2rem;margin-top:4px}
+  /* نافذة التعديل */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:12px;z-index:50}
+  .modal{background:#fff;max-width:520px;width:100%;border-radius:14px;padding:16px}
+  .modal header{background:transparent;color:#111;padding:0;margin-bottom:6px}
+</style>
 </head>
-<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
-  <div class="max-w-5xl mx-auto p-4 sm:p-6">
-    <!-- الشريط العلوي -->
-    <header class="flex items-center justify-between gap-4 mb-6">
-      <div class="flex items-center gap-3">
-        <span class="ti ti-chart-bar text-2xl"></span>
-        <h1 class="text-2xl sm:text-3xl font-extrabold">برنامج إدارة مزرعة الدواجن</h1>
-      </div>
-      <div class="flex items-center gap-2">
-        <button id="darkToggle" class="px-3 py-2 rounded-xl bg-gray-200 dark:bg-gray-800 hover:opacity-90">
-          <span class="ti ti-moon-stars" id="darkIcon"></span>
-        </button>
-      </div>
-    </header><!-- إعدادات الاتصال (اختياري) -->
-<section class="mb-4">
-  <details class="rounded-2xl overflow-hidden group">
-    <summary class="cursor-pointer bg-white/70 dark:bg-gray-800 px-4 py-3 font-semibold flex items-center justify-between">
-      <span class="flex items-center gap-2"><i class="ti ti-plug"></i> الاتصال بـ Supabase (اختياري)</span>
-      <span class="text-sm text-gray-500">اتركه فارغاً للاستخدام بدون إنترنت</span>
-    </summary>
-    <div class="bg-white dark:bg-gray-800 p-4 border-t dark:border-gray-700 grid sm:grid-cols-2 gap-3">
-      <label class="block">
-        <span class="text-sm">SUPABASE_URL</span>
-        <input id="sbUrl" class="mt-1 w-full rounded-xl border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2" placeholder="مثال: https://xxxx.supabase.co"/>
-      </label>
-      <label class="block">
-        <span class="text-sm">SUPABASE_ANON_KEY</span>
-        <input id="sbKey" class="mt-1 w-full rounded-xl border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2" placeholder="ضع المفتاح العام هنا"/>
-      </label>
-      <div class="sm:col-span-2 flex items-center gap-2">
-        <button id="saveSb" class="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700">حفظ الاتصال</button>
-        <span id="sbState" class="text-sm text-gray-500"></span>
-      </div>
+<body>
+
+<header>
+  <div class="wrap">
+    <div>
+      <h1>برنامج إدارة مزرعة الدواجن</h1>
+      <small>واجهة خفيفة تعمل على الجوال وتخزن محليًا (مع تصدير/استيراد نسخة احتياطية)</small>
     </div>
-  </details>
-</section>
-
-<!-- النموذج -->
-<section class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-6 mb-6">
-  <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="ti ti-square-plus"></i> إضافة تقرير يومي</h2>
-  <form id="reportForm" class="grid sm:grid-cols-2 gap-3">
-    <label class="block">
-      <span class="text-sm">التاريخ</span>
-      <input id="date" type="date" class="mt-1 w-full rounded-xl border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2" />
-    </label>
-    <label class="block">
-      <span class="text-sm">عدد الطيور</span>
-      <input id="birds" type="number" min="0" inputmode="numeric" class="mt-1 w-full rounded-xl border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2" placeholder="مثال: 1200" />
-    </label>
-    <label class="block">
-      <span class="text-sm">كمية العلف (كغ)</span>
-      <input id="feed" type="number" step="0.01" min="0" inputmode="decimal" class="mt-1 w-full rounded-xl border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2" placeholder="مثال: 250" />
-    </label>
-    <label class="block sm:col-span-2">
-      <span class="text-sm">ملاحظات</span>
-      <textarea id="notes" rows="2" class="mt-1 w-full rounded-xl border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2" placeholder="اختياري"></textarea>
-    </label>
-    <div class="sm:col-span-2 flex gap-2">
-      <button class="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700" type="submit" id="submitBtn">إضافة التقرير</button>
-      <button class="px-4 py-2 rounded-xl bg-gray-200 dark:bg-gray-700" type="button" id="resetBtn">تفريغ الحقول</button>
+    <div class="toolbar">
+      <button id="btnExport" class="secondary">⬇️ تصدير نسخة</button>
+      <label class="secondary" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:10px">
+        ⬆️ استيراد
+        <input id="importFile" type="file" accept="application/json" style="display:none">
+      </label>
+      <button id="btnClearAll" class="danger">🗑️ مسح كل البيانات</button>
     </div>
-  </form>
-</section>
-
-<!-- أدوات -->
-<section class="flex flex-col sm:flex-row gap-3 mb-4">
-  <div class="flex-1 bg-white dark:bg-gray-800 rounded-2xl p-3">
-    <label class="block text-sm mb-1">بحث</label>
-    <input id="search" placeholder="ابحث في التاريخ/الملاحظات" class="w-full rounded-xl border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 px-3 py-2"/>
   </div>
-  <div class="flex items-end gap-2">
-    <button id="exportCsv" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700"><i class="ti ti-table-export"></i> تصدير CSV</button>
-    <button id="clearAll" class="px-4 py-2 rounded-xl bg-rose-600 text-white hover:bg-rose-700"><i class="ti ti-trash"></i> مسح الكل (محلي)</button>
-  </div>
-</section>
+</header>
 
-<!-- الجدول -->
-<section class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
-  <div class="overflow-x-auto">
-    <table class="min-w-full text-sm">
-      <thead class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-100">
+<nav>
+  <a href="#reports" class="active" onclick="switchTab('reports',this)">التقارير اليومية</a>
+  <a href="#inventory" onclick="switchTab('inventory',this)">المخزون</a>
+</nav>
+
+<main>
+
+  <!-- نظرة عامة سريعة -->
+  <div class="stats card">
+    <div class="stat">
+      إجمالي التقارير
+      <b id="statReports">0</b>
+      <span class="muted">عدد السجلات</span>
+    </div>
+    <div class="stat">
+      أصناف المخزون
+      <b id="statItems">0</b>
+      <span class="muted">عدد الأصناف</span>
+    </div>
+    <div class="stat">
+      آخر تقرير
+      <b id="statLastReport">—</b>
+      <span class="muted">تاريخ</span>
+    </div>
+    <div class="stat">
+      آخر تعديل
+      <b id="statLastUpdate">—</b>
+      <span class="muted">محليًا</span>
+    </div>
+  </div>
+
+  <!-- التقارير اليومية -->
+  <section id="tab-reports" class="card">
+    <h2>التقارير اليومية</h2>
+    <form id="formReport" class="grid" onsubmit="addReport(event)">
+      <input type="date" id="r_date" required />
+      <input type="number" id="r_mort" placeholder="النفوق" min="0" />
+      <input type="number" step="0.01" id="r_feed" placeholder="العلف (كغ)" />
+      <input type="number" step="0.01" id="r_water" placeholder="الماء (لتر)" />
+      <input type="number" step="0.1" id="r_temp" placeholder="الحرارة °C" />
+      <input type="number" step="0.1" id="r_hum" placeholder="الرطوبة %" />
+      <input type="number" step="0.01" id="r_fuel" placeholder="وقود التدفئة" />
+      <input type="number" step="0.01" id="r_wages" placeholder="رواتب اليوم" />
+      <textarea id="r_notes" placeholder="ملاحظات" rows="1" style="grid-column:1/-1"></textarea>
+      <button class="primary" type="submit" style="grid-column:1/-1">➕ إضافة تقرير</button>
+    </form>
+
+    <div class="toolbar" style="margin-top:10px">
+      <input id="searchReports" placeholder="بحث في التقارير..." oninput="renderReports()" />
+      <span class="muted">يتم الحفظ تلقائياً</span>
+    </div>
+
+    <table id="tblReports">
+      <thead>
         <tr>
-          <th class="py-3 px-3 text-right">التاريخ</th>
-          <th class="py-3 px-3 text-right">عدد الطيور</th>
-          <th class="py-3 px-3 text-right">كمية العلف</th>
-          <th class="py-3 px-3 text-right">/طائر (كغ)</th>
-          <th class="py-3 px-3 text-right">ملاحظات</th>
-          <th class="py-3 px-3 text-right">إجراءات</th>
+          <th>التاريخ</th>
+          <th>نفوق</th>
+          <th>علف</th>
+          <th>ماء</th>
+          <th>°C</th>
+          <th>%RH</th>
+          <th>وقود</th>
+          <th>رواتب</th>
+          <th>ملاحظات</th>
+          <th>إجراءات</th>
         </tr>
       </thead>
-      <tbody id="rows"></tbody>
+      <tbody></tbody>
     </table>
+  </section>
+
+  <!-- المخزون -->
+  <section id="tab-inventory" class="card" style="display:none">
+    <h2>المخزون</h2>
+    <form id="formItem" class="grid" onsubmit="addItem(event)">
+      <input id="i_name" placeholder="اسم الصنف (مثال: علف بادئ)" required />
+      <select id="i_type" required>
+        <option value="" disabled selected>نوع الصنف</option>
+        <option value="feed">علف</option>
+        <option value="fuel">وقود</option>
+        <option value="med">دواء/لقاح</option>
+        <option value="mat">مواد أخرى</option>
+      </select>
+      <input id="i_qty" type="number" step="0.001" placeholder="الكمية" required />
+      <input id="i_unit" placeholder="الوحدة (كغ/لتر/كرتونة...)" required />
+      <textarea id="i_notes" placeholder="ملاحظات" rows="1" style="grid-column:1/-1"></textarea>
+      <button class="primary" type="submit" style="grid-column:1/-1">➕ إضافة صنف</button>
+    </form>
+
+    <div class="toolbar" style="margin-top:10px">
+      <input id="searchItems" placeholder="بحث في الأصناف..." oninput="renderItems()" />
+      <span class="muted">عدّل أو احذف أي صنف من الجدول</span>
+    </div>
+
+    <table id="tblItems">
+      <thead>
+        <tr>
+          <th>الصنف</th>
+          <th>النوع</th>
+          <th>الكمية</th>
+          <th>الوحدة</th>
+          <th>ملاحظات</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+</main>
+
+<!-- نافذة التعديل العامة -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <header><h3 id="modalTitle">تعديل</h3></header>
+    <div id="modalBody"></div>
+    <div class="toolbar" style="justify-content:flex-end;margin-top:12px">
+      <button class="secondary" onclick="closeModal()">إلغاء</button>
+      <button class="primary" id="modalSaveBtn">حفظ</button>
+    </div>
   </div>
-  <div class="p-3 text-xs text-gray-500">يتم الحفظ محليًا تلقائيًا، وعند تفعيل Supabase يتم المزامنة مع السحابة.</div>
-</section>
+</div>
 
-<!-- الرسوم -->
-<section class="grid md:grid-cols-2 gap-4 mt-6">
-  <div class="bg-white dark:bg-gray-800 rounded-2xl p-4">
-    <h3 class="font-bold mb-2">العلف المستهلك يوميًا</h3>
-    <canvas id="feedChart" height="140"></canvas>
-  </div>
-  <div class="bg-white dark:bg-gray-800 rounded-2xl p-4">
-    <h3 class="font-bold mb-2">عدد الطيور</h3>
-    <canvas id="birdsChart" height="140"></canvas>
-  </div>
-</section>
+<script>
+  // ======== بيانات وتخزين ========
+  const LS_KEY = "farm-app-v1";
+  const state = loadState() || { reports: [], items: [], lastUpdate: null };
 
-  </div>  <script>
-    // ===================== الثيم =====================
-    const darkToggle = document.getElementById('darkToggle');
-    const darkIcon = document.getElementById('darkIcon');
-    function applyTheme(){
-      const enabled = localStorage.getItem('farm.dark') === '1';
-      document.documentElement.classList.toggle('dark', enabled);
-      darkIcon.className = enabled ? 'ti ti-sun' : 'ti ti-moon-stars';
-    }
-    darkToggle.onclick = ()=>{
-      const cur = localStorage.getItem('farm.dark') === '1';
-      localStorage.setItem('farm.dark', cur ? '0' : '1');
-      applyTheme();
-    }
-    applyTheme();
+  function saveState(){
+    state.lastUpdate = new Date().toISOString();
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    updateStats();
+  }
+  function loadState(){
+    try{ return JSON.parse(localStorage.getItem(LS_KEY)); }catch(_){ return null; }
+  }
 
-    // ===================== إعدادات Supabase (اختياري) =====================
-    const sbUrlEl = document.getElementById('sbUrl');
-    const sbKeyEl = document.getElementById('sbKey');
-    const sbState = document.getElementById('sbState');
-    const saveSbBtn = document.getElementById('saveSb');
+  // ======== أدوات عامة ========
+  function fmt(n){ return (n??"") === "" ? "" : Number(n).toString(); }
+  function today(){ return new Date().toISOString().slice(0,10); }
+  document.getElementById('r_date').value = today();
 
-    const CFG = {
-      url: localStorage.getItem('farm.sb.url') || '',
-      key: localStorage.getItem('farm.sb.key') || ''
+  function switchTab(tab, el){
+    document.querySelectorAll('nav a').forEach(a=>a.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('tab-reports').style.display = (tab==='reports')?'block':'none';
+    document.getElementById('tab-inventory').style.display = (tab==='inventory')?'block':'none';
+  }
+
+  function updateStats(){
+    document.getElementById('statReports').textContent = state.reports.length;
+    document.getElementById('statItems').textContent = state.items.length;
+    document.getElementById('statLastReport').textContent = state.reports.length ? state.reports[state.reports.length-1].date : '—';
+    document.getElementById('statLastUpdate').textContent = state.lastUpdate ? new Date(state.lastUpdate).toLocaleString() : '—';
+  }
+
+  // ======== التقارير اليومية (CRUD) ========
+  function addReport(e){
+    e.preventDefault();
+    const r = {
+      id: crypto.randomUUID(),
+      date: document.getElementById('r_date').value || today(),
+      mort: Number(document.getElementById('r_mort').value||0),
+      feed: Number(document.getElementById('r_feed').value||0),
+      water: Number(document.getElementById('r_water').value||0),
+      temp: document.getElementById('r_temp').value === "" ? null : Number(document.getElementById('r_temp').value),
+      hum:  document.getElementById('r_hum').value === "" ? null : Number(document.getElementById('r_hum').value),
+      fuel: Number(document.getElementById('r_fuel').value||0),
+      wages:Number(document.getElementById('r_wages').value||0),
+      notes: document.getElementById('r_notes').value.trim()
     };
-    sbUrlEl.value = CFG.url; sbKeyEl.value = CFG.key;
+    state.reports.push(r);
+    saveState();
+    renderReports();
+    e.target.reset();
+    document.getElementById('r_date').value = today();
+  }
 
-    let sbClient = null; let remoteEnabled = false;
-    function setupSupabase(){
-      remoteEnabled = !!(CFG.url && CFG.key);
-      if(remoteEnabled){
-        sbClient = supabase.createClient(CFG.url, CFG.key);
-        sbState.textContent = 'سيتم استخدام السحابة عند الإضافة/التحميل.';
-      } else {
-        sbClient = null;
-        sbState.textContent = 'سيتم استخدام التخزين المحلي فقط.';
-      }
-    }
-    saveSbBtn.onclick = ()=>{
-      CFG.url = sbUrlEl.value.trim();
-      CFG.key = sbKeyEl.value.trim();
-      localStorage.setItem('farm.sb.url', CFG.url);
-      localStorage.setItem('farm.sb.key', CFG.key);
-      setupSupabase();
-      refresh();
-    };
-    setupSupabase();
-
-    // ===================== طبقة البيانات =====================
-    const LSK = 'farm.reports.v1';
-
-    async function loadReports(){
-      if(remoteEnabled){
-        const { data, error } = await sbClient
-          .from('daily_reports')
-          .select('*')
-          .order('date', { ascending: true });
-        if(!error && data){ return data.map(normalize); }
-      }
-      const raw = JSON.parse(localStorage.getItem(LSK) || '[]');
-      return raw.map(normalize);
-    }
-
-    async function saveReport(item){
-      // item: {id?, date, birds, feed, notes}
-      if(remoteEnabled){
-        if(item.id){
-          await sbClient.from('daily_reports').update(item).eq('id', item.id);
-        } else {
-          const { data, error } = await sbClient.from('daily_reports').insert(item).select();
-          if(!error && data && data[0]) item.id = data[0].id;
-        }
-      }
-      const all = JSON.parse(localStorage.getItem(LSK) || '[]');
-      if(item.id){
-        const idx = all.findIndex(r=>r.id===item.id);
-        if(idx>-1) all[idx]=item; else all.push(item);
-      } else {
-        item.id = crypto.randomUUID();
-        all.push(item);
-      }
-      localStorage.setItem(LSK, JSON.stringify(all));
-      return item.id;
-    }
-
-    async function removeReport(id){
-      if(remoteEnabled){ await sbClient.from('daily_reports').delete().eq('id', id); }
-      const all = JSON.parse(localStorage.getItem(LSK) || '[]').filter(r=>r.id!==id);
-      localStorage.setItem(LSK, JSON.stringify(all));
-    }
-
-    function normalize(r){
-      return {
-        id: r.id || crypto.randomUUID(),
-        date: r.date || r.created_at?.slice(0,10) || new Date().toISOString().slice(0,10),
-        birds: Number(r.birds||0),
-        feed: Number(r.feed||0),
-        notes: r.notes || ''
-      };
-    }
-
-    // ===================== الواجهة =====================
-    const form = document.getElementById('reportForm');
-    const dateEl = document.getElementById('date');
-    const birdsEl = document.getElementById('birds');
-    const feedEl = document.getElementById('feed');
-    const notesEl = document.getElementById('notes');
-    const rowsEl = document.getElementById('rows');
-    const resetBtn = document.getElementById('resetBtn');
-    const submitBtn = document.getElementById('submitBtn');
-    const searchEl = document.getElementById('search');
-
-    let editingId = null; // عند التعديل
-
-    function today(){ return new Date().toISOString().slice(0,10); }
-    dateEl.value = today();
-
-    form.addEventListener('submit', async (e)=>{
-      e.preventDefault();
-      const item = {
-        id: editingId || undefined,
-        date: dateEl.value || today(),
-        birds: Number(birdsEl.value||0),
-        feed: Number(feedEl.value||0),
-        notes: String(notesEl.value||'').trim()
-      };
-      await saveReport(item);
-      clearForm();
-      refresh();
+  function renderReports(){
+    const term = (document.getElementById('searchReports').value||"").toLowerCase();
+    const tbody = document.querySelector('#tblReports tbody');
+    tbody.innerHTML = "";
+    const list = state.reports.filter(r =>
+      r.date.includes(term) || (r.notes||"").toLowerCase().includes(term)
+    );
+    list.forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="badge">${r.date}</span></td>
+        <td>${fmt(r.mort)}</td>
+        <td>${fmt(r.feed)}</td>
+        <td>${fmt(r.water)}</td>
+        <td>${r.temp ?? ""}</td>
+        <td>${r.hum ?? ""}</td>
+        <td>${fmt(r.fuel)}</td>
+        <td>${fmt(r.wages)}</td>
+        <td style="max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.notes||""}">${r.notes||""}</td>
+        <td class="row-actions">
+          <button class="secondary" onclick="openEditReport('${r.id}')">تعديل</button>
+          <button class="danger" onclick="deleteReport('${r.id}')">حذف</button>
+        </td>`;
+      tbody.appendChild(tr);
     });
+  }
 
-    resetBtn.onclick = clearForm;
-    function clearForm(){
-      editingId = null;
-      dateEl.value = today(); birdsEl.value=''; feedEl.value=''; notesEl.value='';
-      submitBtn.textContent = 'إضافة التقرير';
-    }
+  function deleteReport(id){
+    if(!confirm('هل أنت متأكد من حذف هذا التقرير؟')) return;
+    const i = state.reports.findIndex(r=>r.id===id);
+    if(i>-1){ state.reports.splice(i,1); saveState(); renderReports(); }
+  }
 
-    function renderRows(list){
-      const q = searchEl.value?.trim()?.toLowerCase()||'';
-      const filtered = list.filter(r=>
-        r.date.includes(q) || r.notes.toLowerCase().includes(q)
-      );
-      rowsEl.innerHTML = filtered.map(r=>{
-        const per = r.birds>0 ? (r.feed/r.birds).toFixed(3) : '-';
-        return `<tr class="border-b border-gray-100 dark:border-gray-700">
-          <td class="py-2 px-3 whitespace-nowrap">${r.date}</td>
-          <td class="py-2 px-3">${r.birds.toLocaleString('ar')}</td>
-          <td class="py-2 px-3">${r.feed}</td>
-          <td class="py-2 px-3">${per}</td>
-          <td class="py-2 px-3">${escapeHtml(r.notes)}</td>
-          <td class="py-2 px-3">
-            <button class="text-blue-600 hover:underline" onclick="editRow('${r.id}')">تعديل</button>
-            <span class="mx-1">•</span>
-            <button class="text-rose-600 hover:underline" onclick="deleteRow('${r.id}')">حذف</button>
-          </td>
-        </tr>`;
-      }).join('');
-    }
+  function openEditReport(id){
+    const r = state.reports.find(x=>x.id===id);
+    if(!r) return;
+    openModal('تعديل تقرير يومي', `
+      <div class="grid" style="grid-template-columns:repeat(2,1fr);gap:10px">
+        <input type="date" id="er_date" value="${r.date}">
+        <input type="number" id="er_mort" placeholder="النفوق" value="${r.mort}">
+        <input type="number" step="0.01" id="er_feed" placeholder="العلف" value="${r.feed}">
+        <input type="number" step="0.01" id="er_water" placeholder="الماء" value="${r.water}">
+        <input type="number" step="0.1" id="er_temp" placeholder="°C" value="${r.temp ?? ''}">
+        <input type="number" step="0.1" id="er_hum" placeholder="%RH" value="${r.hum ?? ''}">
+        <input type="number" step="0.01" id="er_fuel" placeholder="وقود" value="${r.fuel}">
+        <input type="number" step="0.01" id="er_wages" placeholder="رواتب" value="${r.wages}">
+        <textarea id="er_notes" rows="2" style="grid-column:1/-1" placeholder="ملاحظات">${r.notes||''}</textarea>
+      </div>
+    `, ()=>{
+      r.date = document.getElementById('er_date').value || r.date;
+      r.mort = Number(document.getElementById('er_mort').value||0);
+      r.feed = Number(document.getElementById('er_feed').value||0);
+      r.water = Number(document.getElementById('er_water').value||0);
+      r.temp = document.getElementById('er_temp').value===""?null:Number(document.getElementById('er_temp').value);
+      r.hum  = document.getElementById('er_hum').value===""?null:Number(document.getElementById('er_hum').value);
+      r.fuel = Number(document.getElementById('er_fuel').value||0);
+      r.wages= Number(document.getElementById('er_wages').value||0);
+      r.notes= document.getElementById('er_notes').value.trim();
+      saveState(); renderReports(); closeModal();
+    });
+  }
 
-    window.editRow = async function(id){
-      const list = await loadReports();
-      const r = list.find(x=>x.id===id);
-      if(!r) return;
-      editingId = r.id;
-      dateEl.value = r.date; birdsEl.value = r.birds; feedEl.value = r.feed; notesEl.value = r.notes;
-      submitBtn.textContent = 'حفظ التعديلات';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    window.deleteRow = async function(id){
-      if(!confirm('هل تريد حذف هذا السجل؟')) return;
-      await removeReport(id);
-      refresh();
-    }
-
-    searchEl.addEventListener('input', refresh);
-
-    // ===================== التصدير =====================
-    document.getElementById('exportCsv').onclick = async ()=>{
-      const list = await loadReports();
-      const header = ['date','birds','feed','notes'];
-      const lines = [header.join(',')].concat(
-        list.map(r=>[r.date,r.birds,r.feed,`"${(r.notes||'').replaceAll('"','''')}"`].join(','))
-      );
-      const blob = new Blob(["\ufeff" + lines.join('\n')], {type:'text/csv;charset=utf-8;'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'farm_reports.csv'; a.click();
-      URL.revokeObjectURL(url);
+  // ======== المخزون (CRUD) ========
+  function addItem(e){
+    e.preventDefault();
+    const it = {
+      id: crypto.randomUUID(),
+      name: document.getElementById('i_name').value.trim(),
+      type: document.getElementById('i_type').value,
+      qty: Number(document.getElementById('i_qty').value||0),
+      unit: document.getElementById('i_unit').value.trim(),
+      notes: document.getElementById('i_notes').value.trim()
     };
+    state.items.push(it);
+    saveState();
+    renderItems();
+    e.target.reset();
+  }
 
-    // مسح محلي فقط
-    document.getElementById('clearAll').onclick = ()=>{
-      if(confirm('سيتم مسح النسخة المحلية فقط. متابعة؟')){
-        localStorage.removeItem(LSK);
-        refresh();
-      }
+  function renderItems(){
+    const term = (document.getElementById('searchItems').value||"").toLowerCase();
+    const tbody = document.querySelector('#tblItems tbody');
+    tbody.innerHTML = "";
+    const list = state.items.filter(i =>
+      i.name.toLowerCase().includes(term) || (i.notes||"").toLowerCase().includes(term)
+    );
+    list.forEach(i=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${i.name}</td>
+        <td><span class="badge">${typeLabel(i.type)}</span></td>
+        <td>${fmt(i.qty)}</td>
+        <td>${i.unit}</td>
+        <td style="max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${i.notes||""}">${i.notes||""}</td>
+        <td class="row-actions">
+          <button class="secondary" onclick="openEditItem('${i.id}')">تعديل</button>
+          <button class="danger" onclick="deleteItem('${i.id}')">حذف</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function typeLabel(t){
+    return {feed:'علف', fuel:'وقود', med:'دواء/لقاح', mat:'مواد أخرى'}[t] || t;
+  }
+
+  function deleteItem(id){
+    if(!confirm('حذف هذا الصنف؟')) return;
+    const i = state.items.findIndex(x=>x.id===id);
+    if(i>-1){ state.items.splice(i,1); saveState(); renderItems(); }
+  }
+
+  function openEditItem(id){
+    const i = state.items.find(x=>x.id===id);
+    if(!i) return;
+    openModal('تعديل صنف مخزون', `
+      <div class="grid" style="grid-template-columns:repeat(2,1fr);gap:10px">
+        <input id="ei_name" value="${i.name}">
+        <select id="ei_type">
+          <option value="feed" ${i.type==='feed'?'selected':''}>علف</option>
+          <option value="fuel" ${i.type==='fuel'?'selected':''}>وقود</option>
+          <option value="med" ${i.type==='med'?'selected':''}>دواء/لقاح</option>
+          <option value="mat" ${i.type==='mat'?'selected':''}>مواد أخرى</option>
+        </select>
+        <input id="ei_qty" type="number" step="0.001" value="${i.qty}">
+        <input id="ei_unit" value="${i.unit}">
+        <textarea id="ei_notes" rows="2" style="grid-column:1/-1">${i.notes||''}</textarea>
+      </div>
+    `, ()=>{
+      i.name = document.getElementById('ei_name').value.trim() || i.name;
+      i.type = document.getElementById('ei_type').value;
+      i.qty  = Number(document.getElementById('ei_qty').value||0);
+      i.unit = document.getElementById('ei_unit').value.trim();
+      i.notes= document.getElementById('ei_notes').value.trim();
+      saveState(); renderItems(); closeModal();
+    });
+  }
+
+  // ======== نافذة التعديل ========
+  const backdrop = document.getElementById('modalBackdrop');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalBody  = document.getElementById('modalBody');
+  const modalSave  = document.getElementById('modalSaveBtn');
+
+  function openModal(title, bodyHTML, onSave){
+    modalTitle.textContent = title;
+    modalBody.innerHTML = bodyHTML;
+    modalSave.onclick = onSave;
+    backdrop.style.display = 'flex';
+  }
+  function closeModal(){ backdrop.style.display = 'none'; }
+
+  // ======== تصدير/استيراد/مسح ========
+  document.getElementById('btnExport').onclick = ()=>{
+    const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `farm-backup-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`;
+    a.click();
+  };
+
+  document.getElementById('importFile').onchange = (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const data = JSON.parse(reader.result);
+        if(!data || !Array.isArray(data.reports) || !Array.isArray(data.items)){
+          alert('ملف غير صالح'); return;
+        }
+        state.reports = data.reports;
+        state.items   = data.items;
+        state.lastUpdate = new Date().toISOString();
+        saveState();
+        renderReports(); renderItems();
+        alert('تم الاستيراد بنجاح');
+      }catch(_){ alert('تعذر قراءة الملف'); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  document.getElementById('btnClearAll').onclick = ()=>{
+    if(confirm('سيتم مسح كل البيانات المحلية، هل أنت متأكد؟')){
+      localStorage.removeItem(LS_KEY);
+      state.reports=[]; state.items=[]; state.lastUpdate=null;
+      renderReports(); renderItems(); updateStats();
     }
+  };
 
-    // ===================== الرسوم البيانية =====================
-    let feedChart, birdsChart;
-    function updateCharts(list){
-      const labels = list.map(r=>r.date);
-      const feedData = list.map(r=>r.feed);
-      const birdsData = list.map(r=>r.birds);
+  // ======== إقلاع الصفحة ========
+  renderReports();
+  renderItems();
+  updateStats();
+</script>
 
-      if(feedChart){ feedChart.destroy(); }
-      if(birdsChart){ birdsChart.destroy(); }
-
-      const opt = {
-        responsive: true,
-        scales: { y: { beginAtZero: true } },
-        plugins: { legend: { display: false } }
-      };
-      feedChart = new Chart(document.getElementById('feedChart'), {
-        type: 'bar', data: { labels, datasets: [{ data: feedData }] }, options: opt
-      });
-      birdsChart = new Chart(document.getElementById('birdsChart'), {
-        type: 'line', data: { labels, datasets: [{ data: birdsData }] }, options: opt
-      });
-    }
-
-    // ===================== المزامنة والعرض =====================
-    async function refresh(){
-      const list = (await loadReports()).sort((a,b)=>a.date.localeCompare(b.date));
-      renderRows(list);
-      updateCharts(list);
-    }
-
-    function escapeHtml(s){
-      return (s||'').replace(/[&<>\"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
-    }
-
-    // أول تحميل
-    refresh();
-  </script></body>
+</body>
 </html>
